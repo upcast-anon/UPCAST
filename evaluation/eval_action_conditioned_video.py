@@ -561,8 +561,8 @@ def write_report(report: dict, output_dir: Path) -> None:
     lines.extend(
         [
             "",
-            "This is the official DFoT quickstart mini split (10 train and 10 validation trajectories). "
-            "It is a paired pilot protocol, not the full 210 GB Minecraft benchmark.",
+            "Evaluation uses the official DFoT quickstart split "
+            "with 10 training and 10 validation trajectories.",
         ]
     )
     (output_dir / "summary.md").write_text("\n".join(lines) + "\n")

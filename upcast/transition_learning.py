@@ -345,7 +345,7 @@ class FrozenVJEPATokenExtractor(nn.Module):
 
 
 class FactorizedTransitionLearning(nn.Module):
-    """UPCAST world-transition tokenizer, checkpoint architecture V7."""
+    """UPCAST world-transition tokenizer using checkpoint schema 7."""
 
     def __init__(
         self,
@@ -1537,7 +1537,7 @@ class FactorizedTransitionLearning(nn.Module):
         physical = physical_spans.mean(dim=1)
         appearance = appearance_spans.mean(dim=1)
         # The state updater owns the learned memory dynamics. Parameter-free
-        # normalization keeps this aggregation compatible with V5 checkpoints.
+        # normalization preserves compatibility with existing checkpoints.
         physical = F.layer_norm(physical, (physical.shape[-1],))
         appearance = F.layer_norm(appearance, (appearance.shape[-1],))
         indices = torch.stack(code_indices, dim=1)

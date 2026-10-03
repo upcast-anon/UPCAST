@@ -268,7 +268,7 @@ available_gib=$(awk -v kib="${available_kib}" \
 printf '  disk_guard=%s GiB required, %s GiB currently free\n' \
   "${min_checkpoint_free_gb}" "${available_gib}"
 
-printf 'Generative UPCAST V14.1\n'
+printf 'UPCAST selective backbone consolidation\n'
 printf '  source=%s\n' "${start_ckpt}"
 printf '  batch=%s x %s GPUs x accum%s = %s\n' \
   "${batch_size}" "${num_devices}" "${accumulate}" "${effective_batch}"

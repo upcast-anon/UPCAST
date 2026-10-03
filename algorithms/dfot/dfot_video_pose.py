@@ -245,10 +245,9 @@ class DFoTUPCAST(DFoTVideoPose):
             self.generative_unit_mode == "conditional_teacher"
             and int(metadata.get("training_contract_version", -1)) < 6
         ):
-            # V14 accumulated rank-local statistics under the squared
-            # counterfactual objective. A V14.1 continuation keeps the learned
-            # model and optimizer, but starts a clean globally reduced audit
-            # for the calibrated/RMS objective.
+            # Older contracts accumulated rank-local squared-error statistics.
+            # Retain the model and optimizer, but reset statistics for the
+            # globally reduced calibrated/RMS objective.
             rank_zero_print(
                 "[DFoTUPCAST] Reset conditional-teacher quality "
                 "statistics for training contract 6."
@@ -470,7 +469,7 @@ class DFoTUPCAST(DFoTVideoPose):
         return conditioner_parameters, diffusion_parameters
 
     def _set_world_state_adapter_only_trainable(self) -> None:
-        """Freeze the V5 base and expose only the zero-init V7 adapter."""
+        """Freeze the acquired model and train only the zero-initialized adapter."""
         for parameter in self.diffusion_model.parameters():
             parameter.requires_grad = False
         adapter = getattr(self._world_state_backbone(), "world_state_adapter", None)
@@ -1252,7 +1251,7 @@ class DFoTUPCAST(DFoTVideoPose):
             "rollout_horizon_probabilities",
             None,
         )
-        # Retain the V7 three-window fields as a config fallback so old scripts
+        # Retain the three-window fields as a config fallback so old scripts
         # remain loadable. New runs should provide the complete horizon
         # distribution explicitly.
         self.rollout_three_window_start_step = int(
@@ -1856,7 +1855,7 @@ class DFoTUPCAST(DFoTVideoPose):
             )
             if capture_contract != ("down", 2, (-1,)):
                 raise ValueError(
-                    "Physical conditioner requires the V8 source interface "
+                    "Physical conditioner requires the transition-source interface "
                     "latent_return_stage=down, level=2, blocks=[-1]; got "
                     f"{capture_contract}"
                 )
@@ -3214,7 +3213,7 @@ class DFoTUPCAST(DFoTVideoPose):
                 None,
             )
             if world_state_adapter is None:
-                raise RuntimeError("Missing V7 world-state adapter")
+                raise RuntimeError("Missing world-state adapter")
             if self.world_state_training_mode == "gate_only":
                 world_state_params = [
                     parameter
@@ -3230,7 +3229,7 @@ class DFoTUPCAST(DFoTVideoPose):
                 ]
                 group_name = "world_state_adapter_only"
             if not world_state_params:
-                raise RuntimeError("V7 world-state adapter has no trainable parameters")
+                raise RuntimeError("World-state adapter has no trainable parameters")
             optimizer_dynamics = torch.optim.AdamW(
                 [
                     {
@@ -4342,7 +4341,7 @@ class DFoTUPCAST(DFoTVideoPose):
         baseline_loss_map: Tensor,
         masks: Tensor,
     ) -> tuple[Tensor, dict[str, Tensor]]:
-        """Penalize memory only where it underperforms the no-memory V8 branch."""
+        """Penalize memory only where it underperforms the no-memory branch."""
         if state_loss_map.shape != baseline_loss_map.shape:
             raise ValueError(
                 "State and no-state diffusion loss maps must match, got "
@@ -4469,9 +4468,9 @@ class DFoTUPCAST(DFoTVideoPose):
     ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, dict[str, Tensor]]:
         """Convert lower-is-better counterfactuals into calibrated targets.
 
-        Absolute score normalization made V10.2 targets almost exactly 0.5:
-        branch differences were around 1e-3 while the scores themselves were
-        O(1).  Here each component is normalized by its paired branch spread.
+        Absolute score normalization can hide small branch differences when
+        the scores themselves are O(1). Each component is instead normalized
+        by its paired branch spread.
         A score-relative floor and reliability term prevent numerical noise
         from becoming a confident preference when all branches are equal.
         """
@@ -4519,9 +4518,8 @@ class DFoTUPCAST(DFoTVideoPose):
             diagnostics[f"{component}_reliability"] = reliability
         if factorial:
             # Average each branch's marginal utility with the other branch off
-            # and on. This is the two-player Shapley value and removes the
-            # V10.3 ordering assumption that physical must always precede
-            # appearance.
+            # and on. This is the two-player Shapley value and does not assume
+            # that physical conditioning precedes appearance conditioning.
             physical_advantage = 0.5 * (
                 combined["none"]
                 - combined["physical"]
@@ -7247,7 +7245,7 @@ class DFoTUPCAST(DFoTVideoPose):
                 denoising_terms["logsnr"],
             )
             # Keep zero/default gradient diagnostics when all optional raw-RGB
-            # boundary objectives are disabled (the V10 default).
+            # boundary objectives are disabled.
             rollout_boundary_components.update(computed_boundary_components)
             rollout_boundary_expected = rollout_boundary_loss
             if self.rollout_frequency_compensation:

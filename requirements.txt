@@ -1,4 +1,6 @@
 numpy>=1.24,<2
+# TorchMetrics 0.11.4 imports pkg_resources.
+setuptools<82
 torch==2.5.0
 torchvision==0.20.0
 wandb

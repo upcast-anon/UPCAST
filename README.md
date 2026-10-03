@@ -32,8 +32,9 @@ and conditioner are not used at deployment.
 
 ## Setup
 
-Use Python 3.10 and a CUDA-compatible PyTorch installation. The source checks
-use PyTorch 2.5.0 and torchvision 0.20.0.
+Training and video evaluation require Linux and an NVIDIA CUDA GPU. Use
+Python 3.10 with PyTorch 2.5.0 and torchvision 0.20.0. The focused source
+checks can run on CPU.
 
 ```bash
 conda create -n upcast python=3.10 -y

@@ -246,7 +246,7 @@ alignment:
   rollout_boundary_temporal_weight: 2.0e-4
   rollout_boundary_color_weight: 5.0e-5
   rollout_trajectory_weight: 0.0
-  # Optional V10 adapter calibration: compare the state-conditioned denoising
+  # Optional adapter calibration: compare the state-conditioned denoising
   # task with the exact same frozen no-state task and penalize regressions only.
   rollout_state_regret_weight: 0.0
   rollout_adapter_diffusion_weight: 1.0
@@ -271,7 +271,7 @@ alignment:
   rollout_preference_cache_namespace: upcast-state
   rollout_preference_source_id: unknown
   # Keep collection stationary: cached utility labels are always measured from
-  # the immutable full-state V10.3 predecessor, never the policy being fitted.
+  # an immutable full-state predecessor, never the policy being fitted.
   rollout_preference_predecessor_branch_mode: full
   rollout_preference_min_validation_correlation: 0.2
   rollout_preference_state_weight: 0.25

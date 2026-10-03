@@ -34,6 +34,8 @@ from utils.ckpt_utils import (
     wandb_to_local_path,
 )
 from utils.cluster_utils import submit_slurm_job
+from utils.distributed_utils import rank_zero_print, is_rank_zero
+from utils.hydra_utils import unwrap_shortcuts
 
 
 def _update_latest_run_link(output_dir: Path) -> None:
@@ -47,8 +49,6 @@ def _update_latest_run_link(output_dir: Path) -> None:
         os.replace(temporary_link, latest_run)
     finally:
         temporary_link.unlink(missing_ok=True)
-from utils.distributed_utils import rank_zero_print, is_rank_zero
-from utils.hydra_utils import unwrap_shortcuts
 
 
 def _patch_wandb_flags_none_bug():

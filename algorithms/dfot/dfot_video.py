@@ -1865,7 +1865,7 @@ class DFoTVideo(BasePytorchAlgo):
                 )
                 rank_zero_print(
                     cyan(
-                        "Migrating UPCAST checkpoint V5 -> V7; "
+                        "Migrating UPCAST checkpoint schema 5 -> 7; "
                         "only the pose-aware persistent state adapter is initialized."
                     )
                 )
@@ -1912,7 +1912,7 @@ class DFoTVideo(BasePytorchAlgo):
                 if restore_version not in {5, expected_version}:
                     raise ValueError(
                         "Full UPCAST teacher checkpoint has unsupported architecture "
-                        f"version {restore_version!r}; expected V5 or V{expected_version}."
+                        f"schema {restore_version!r}; expected 5 or {expected_version}."
                     )
                 restored = 0
                 for key in missing_before_restore:
@@ -2054,9 +2054,8 @@ class DFoTVideo(BasePytorchAlgo):
                     for key in configured_world_state
                     if key in unit_metadata
                 }
-                # V10.3 recorded the preference objective revision but not the
-                # policy architecture field. Its two metadata-only MLP gates
-                # are policy v2 for the explicit v2 -> stable-window v3 path.
+                # Older metadata recorded the objective revision without a
+                # policy schema. Infer schema 2 for its two independent gates.
                 if (
                     "world_state_preference_policy_version"
                     not in checkpoint_world_state
@@ -2457,13 +2456,13 @@ class DFoTVideo(BasePytorchAlgo):
                 ]
                 if disallowed_migration_keys:
                     raise ValueError(
-                        "V5 -> V7 migration encountered unexpected missing diffusion "
+                        "Schema 5 -> 7 migration encountered unexpected missing diffusion "
                         "parameters: " + "; ".join(disallowed_migration_keys[:5])
                     )
                 rank_zero_print(
                     cyan(
-                        "Initialized the V7 world-state adapter from its zero-output "
-                        "construction; all V5 diffusion and UPCAST weights were retained."
+                        "Initialized the world-state adapter from its zero-output "
+                        "construction; all diffusion and UPCAST weights were retained."
                     )
                 )
             elif (
@@ -2472,7 +2471,7 @@ class DFoTVideo(BasePytorchAlgo):
                 and critical_missing_keys
             ):
                 raise ValueError(
-                    "A V7 inference checkpoint must contain the complete diffusion "
+                    "A schema-7 inference checkpoint must contain the complete diffusion "
                     "model and world-state adapter; missing: "
                     + "; ".join(critical_missing_keys[:5])
                 )

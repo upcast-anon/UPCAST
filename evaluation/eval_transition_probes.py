@@ -120,9 +120,8 @@ def load_probe_config(args: argparse.Namespace):
         cfg.algorithm.alignment.rollout_training_enable = False
         cfg.algorithm.alignment.unit_physical_only_continuation = False
         cfg.algorithm.alignment.unit_video_only_inference = False
-        # The V8 source predates the later preference-policy memory head. The
-        # factorization probe reads UPCAST encoders/decoders only, so do not
-        # instantiate or migrate an unrelated runtime memory adapter.
+        # Factorization probes read only the encoders and decoders, so the
+        # runtime memory adapter is not needed.
         cfg.algorithm.backbone.world_state.enable = False
         cfg.algorithm.alignment.world_state_training_mode = "joint"
     return cfg, checkpoint, config_path

@@ -536,10 +536,9 @@ class GatedWorldStateAdapter(nn.Module):
     """Pose-aware read and update rules for a persistent factorized state.
 
     Each memory token carries a camera-ray anchor and a confidence value. The
-    read path therefore retrieves state by world-space ray compatibility rather
-    than by the screen-space token index used by V6. Both residual heads are
-    zero initialized, preserving the loaded video model exactly before V7
-    adapter training.
+    read path retrieves state by world-space ray compatibility rather than
+    screen-space token index. Both residual heads are zero initialized,
+    preserving the loaded video model exactly before adapter training.
     """
 
     def __init__(
@@ -604,7 +603,7 @@ class GatedWorldStateAdapter(nn.Module):
             transport_preserve_token_norm
         )
         if self.anchor_dim != 9:
-            raise ValueError("V7 world-state ray anchors must have 9 channels")
+            raise ValueError("World-state ray anchors must have 9 channels")
         if self.memory_grid_size < 1 or self.max_state_tokens < 1:
             raise ValueError("World-state memory dimensions must be positive")
         if self.physical_age_half_life <= 0 or self.appearance_age_half_life <= 0:
@@ -716,10 +715,8 @@ class GatedWorldStateAdapter(nn.Module):
             )
         )
 
-        # Kept only so V10.2/V10.3 checkpoints remain strictly loadable. Age is
-        # now an input feature; multiplying the policy by an independently
-        # learned one-sided decay made the supervised probability cease to be
-        # the action actually applied to the video model.
+        # Retained for strict checkpoint compatibility. Age is an input
+        # feature; a separate decay would change the calibrated policy output.
         self.physical_age_decay_strength = nn.Parameter(torch.tensor(0.0))
         self.appearance_age_decay_strength = nn.Parameter(torch.tensor(0.0))
 
@@ -730,7 +727,7 @@ class GatedWorldStateAdapter(nn.Module):
         nn.init.zeros_(self.state_refiner[-1].bias)
         # Start from a deterministic exponential update of the observed
         # spatial tokens. Attention and MLP learn cross-region corrections;
-        # their zero-output initialization prevents the migrated V5 features
+        # their zero-output initialization prevents the loaded features
         # from being distorted by random update rules.
         nn.init.zeros_(self.physical_update_attention.out_proj.weight)
         nn.init.zeros_(self.physical_update_attention.out_proj.bias)
@@ -767,7 +764,7 @@ class GatedWorldStateAdapter(nn.Module):
         unexpected_keys,
         error_msgs,
     ):
-        """Migrate V10.1-V10.3 adapters while keeping strict loading.
+        """Restore older adapter checkpoints while keeping strict loading.
 
         Only preference-policy parameters are synthesized. Any unrelated
         architecture mismatch still fails under strict loading.
@@ -796,7 +793,7 @@ class GatedWorldStateAdapter(nn.Module):
 
     @staticmethod
     def _bounded_decay_strength(value: Tensor) -> Tensor:
-        """Deprecated clamp retained for V10.3 checkpoint-level tests."""
+        """Legacy clamp retained for checkpoint compatibility."""
         bounded = value.clamp(0.0, 10.0)
         return value + (bounded - value).detach()
 

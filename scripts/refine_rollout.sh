@@ -258,7 +258,7 @@ if [ -z "${available_kib}" ] || [ "${available_kib}" -lt "${required_kib}" ]; th
   exit 1
 fi
 
-printf 'Generative UPCAST V15 motion calibration\n'
+printf 'UPCAST motion-aware rollout refinement\n'
 printf '  source=%s\n' "${load_checkpoint}"
 printf '  mode=%s, teacher=%s\n' \
   "${generative_mode}" "${teacher_ckpt:-disabled}"
