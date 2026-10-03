@@ -1,0 +1,306 @@
+# Important: Be careful when modifying this file! The fields in file will be overridden by the dataset dependent config file in the `configurations/dataset_experiment` folder so consider making changes there instead!
+
+defaults:
+  - dfot_video
+  - override backbone: u_vit3d_pose
+
+lr_scheduler_frequency: 1
+
+camera_pose_conditioning:
+  normalize_by: first # first, mean
+  bound: null # float to scale the camera positions to [-bound, bound]^3
+  type: ray_encoding # global (flattened extrinsics), ray (per-pixel origin and direction), ray_encoding (ray mapped to high-dimensional space), plucker (ray in Plücker coordinates)
+
+# UPCAST training components. Published evaluation uses the video backbone
+# alone; scripts/eval_upcast.sh disables auxiliary state and conditioning.
+alignment:
+  alignment_coeff: 0.05
+  encoder_type: vggt
+  alignment_mode: unit_world_latent
+  unit_arch_version: 7
+  # Sequential conditional-teacher fitting and backbone consolidation.
+  generative_unit_mode: off # off | adapter_warmup | conditional_teacher | student_distill | motion_calibration
+  generative_unit_initialize: false
+  generative_unit_lr: 1.0e-4
+  generative_diffusion_lr: 5.0e-7
+  generative_video_fm_weight: 1.0
+  # Train a paired conditional teacher against a frozen video suffix.
+  # Relative normalization keeps the video objective comparable across noise
+  # levels, while the negative branch keeps q_v fixed and shuffles only q_f.
+  generative_conditional_fm_weight: 1.0
+  generative_baseline_rank_weight: 1.0
+  generative_shuffle_rank_weight: 1.0
+  # RMS, rather than squared energy, keeps a useful gradient while a shuffled
+  # condition approaches the identity path.
+  generative_shuffle_identity_weight: 0.25
+  generative_pair_gate_rank_weight: 0.25
+  generative_pair_gate_calibration_weight: 0.01
+  generative_pair_gate_margin: 0.10
+  generative_rank_margin: 0.002
+  generative_fm_error_floor: 1.0e-4
+  generative_teacher_initial_gate: 0.30
+  generative_teacher_quality_ema_decay: 0.995
+  generative_teacher_min_relative_gain: 0.00025
+  generative_teacher_min_win_fraction: 0.52
+  generative_teacher_min_shuffle_gain: 0.000075
+  generative_teacher_min_condition_win_fraction: 0.53
+  generative_teacher_min_samples: 256
+  # FP16 occasionally overflows one frozen-tail backward at the default
+  # GradScaler scale. Let GradScaler recover, but fail on a persistent fault.
+  generative_max_consecutive_amp_skips: 3
+  generative_require_qualified_teacher: true
+  generative_physical_velocity_weight: 0.0
+  generative_advantage_distill_weight: 0.1
+  generative_advantage_max: 1.0
+  generative_distill_signal_min: 0.1
+  generative_distill_signal_max: 0.9
+  # Rollout refinement redistributes the distillation budget toward transitions
+  # with real latent/camera displacement, then adds a sparse coarse-motion
+  # safeguard against the conservative/static solution seen in long rollouts.
+  generative_distill_motion_boost: 1.0
+  generative_motion_loss_weight: 0.0
+  generative_motion_loss_freq: 5
+  generative_motion_loss_phase: 0
+  generative_motion_frequency_compensation: true
+  generative_motion_spatial_grid: 8
+  generative_motion_strides: [1, 2, 4, 8]
+  generative_motion_signal_threshold: 0.1
+  generative_motion_magnitude_weight: 0.25
+  generative_motion_under_weight: 1.25
+  generative_motion_camera_boost: 0.5
+  generative_motion_max_grad_ratio: 0.05
+  generative_motion_gradient_probe_scale: 65536.0
+  strict_generative_motion: true
+  generative_teacher_checkpoint: null
+  generative_diffusion_trainable_prefixes:
+    - model.mid_blocks.8
+    - model.mid_blocks.9
+    - model.mid_blocks.10
+    - model.mid_blocks.11
+    - model.up_blocks.0
+    - model.up_blocks.1
+    - model.project_output
+  generative_shuffle_diagnostic_freq: 20
+  unit_inference_enable: false
+  unit_video_only_inference: false
+  unit_enable_preference_scorers: false
+  unit_migrate_from_version: null
+  unit_full_teacher_checkpoint: null
+  world_state_preference_migrate_from_version: null
+  allow_unvalidated_preference_policy: false
+  world_state_runtime_scale: 1.0
+  world_state_runtime_branch_mode: full
+  world_state_lr: 1.0e-5
+  world_state_training_mode: joint
+  selective_diffusion_trainable_prefixes:
+    - model.external_cond_embedding
+    - model.down_blocks.1
+    - model.down_blocks.2
+    - model.mid_blocks.8
+    - model.mid_blocks.9
+    - model.mid_blocks.10
+    - model.mid_blocks.11
+    - model.up_blocks.0
+    - model.up_blocks.1
+    - model.project_output
+    - model.world_state_adapter
+  unit_allow_curriculum_override: false
+  world_state_require_rollout_reads: false
+  world_state_initialize_from_context: false
+  world_state_context_min_frames: 2
+  world_state_context_max_frames: 4
+  unit_world_state_distill_loss_weight: 0.1
+  unit_joint_world_state_distill_loss_weight: 0.02
+  alignment_context_length: 16
+  keyframe_stride: 1
+  unit_geometry_tokenizer_steps: 100
+  unit_bootstrap_steps: 500
+  unit_joint_ramp_steps: 40
+  unit_joint_alignment_coeff: 0.004
+  unit_freeze_after_bootstrap: true
+  # Disabled by default. A continuation experiment may sparsely update only
+  # the video-side Unit students while geometry/codebooks/decoders stay fixed.
+  unit_cotrain_start_step: -1
+  unit_cotrain_interval: 4
+  unit_cotrain_lr: 1.0e-6
+  latents_info: [[576, 32, 32]]
+
+  geometry_teacher: page4d
+  geometry_teacher_repo_id: zhouk777/PAGE4D
+  geometry_teacher_checkpoint: huggingface/zhouk777--PAGE4D/checkpoint_nomask.pt
+  geometry_representation: point_map
+  geometry_feature_info: [3, 128, 128]
+  geometry_normalize: true
+
+  unit_dim: 768
+  unit_spatial_grid: [8, 8]
+  unit_anchor_grid: [16, 16]
+  unit_mformer_layers: 4
+  unit_fusion_layers: 4
+  unit_appearance_layers: 2
+  unit_appearance_fusion_layers: 2
+  unit_visual_decoder_layers: 8
+  unit_geometry_decoder_layers: 8
+  unit_num_heads: 12
+  unit_ffn_dim: 3072
+  unit_vq_dim: 64
+  unit_vq_stages: 2
+  unit_vq_codebook_size: 256
+  unit_commitment_beta: 0.25
+  unit_vq_ema_decay: 0.8
+  unit_vq_dead_code_threshold: 2.0
+  unit_vq_dead_code_restart_interval: 100
+  unit_geometry_feature_channels: 2048
+  unit_noise_signal_threshold: 0.01
+  unit_dino_model_name: dinov2_vits14
+  unit_physical_only_continuation: false
+  unit_dino_feature_dim: 384
+  unit_video_tail_checkpoint: checkpoints/DFoT_16f_state_dict.ckpt
+  unit_tail_activation_checkpointing: true
+
+  unit_visual_loss_weight: 1.0
+  unit_geometry_loss_weight: 1.0
+  unit_tail_fm_loss_weight: 1.0
+  unit_rvq_loss_weight: 1.0
+  unit_code_assignment_loss_weight: 1.0
+  unit_soft_code_loss_weight: 0.5
+  unit_pre_vq_alignment_loss_weight: 0.5
+  unit_code_usage_loss_weight: 0.25
+  unit_student_spread_loss_weight: 0.25
+  unit_code_level_weights: [2.0, 1.0]
+  unit_physical_contrast_loss_weight: 0.1
+  unit_appearance_contrast_loss_weight: 0.1
+  unit_variance_loss_weight: 0.1
+  unit_shuffle_loss_weight: 0.5
+  unit_shuffle_margin: 0.05
+  unit_shuffle_loss_freq: 4
+  unit_shuffle_loss_phase: 2
+  unit_anchor_dropout: 0.25
+  unit_anchor_sample_dropout: 0.25
+  unit_q_only_loss_weight: 0.2
+  unit_q_only_loss_freq: 4
+  unit_q_only_loss_phase: 0
+  unit_contrastive_temperature: 0.1
+  unit_contrastive_memory_size: 256
+  unit_code_temperature: 0.1
+  unit_code_usage_temperature: 0.01
+
+  unit_joint_visual_loss_weight: 0.1
+  unit_joint_geometry_loss_weight: 0.1
+  unit_joint_tail_fm_loss_weight: 1.0
+  unit_joint_rvq_loss_weight: 0.1
+  unit_joint_code_assignment_loss_weight: 0.02
+  unit_joint_soft_code_loss_weight: 0.02
+  unit_joint_pre_vq_alignment_loss_weight: 0.02
+  unit_joint_physical_contrast_loss_weight: 0.02
+  unit_joint_appearance_contrast_loss_weight: 0.02
+  unit_health_check_start: 150
+  unit_health_check_patience: 20
+  unit_health_min_perplexity: 1.5
+  unit_health_min_projected_std: 0.01
+
+  compute_generation_loss: true
+  generation_loss_freq: 20
+  generation_loss_phase: 0
+  generation_loss_frequency_compensation: true
+  strict_generation_protection: true
+  generation_dino_patch_loss_weight: 0.003
+  generation_vjepa_spatial_loss_weight: 0.003
+  generation_vjepa_temporal_loss_weight: 0.010
+  generation_vjepa_global_loss_weight: 0.001
+  generation_color_moment_loss_weight: 0.0
+  generation_rgb_temporal_loss_weight: 0.0
+  generation_noise_signal_threshold: 0.1
+  generation_video_encoder_name: vjepa_vitl16
+  generation_video_num_frames: 16
+  generation_pixel_loss_weight: 0.0
+
+  diffusion_lr: 5e-7
+  unit_lr: 8e-5
+  video_prior_preservation_weight: 0.10
+  video_prior_checkpoint: checkpoints/DFoT_16f_state_dict.ckpt
+  video_prior_cpu_offload: true
+  video_prior_mode: full_model
+  video_prior_preservation_freq: 20
+  video_prior_preservation_phase: 1
+  video_prior_frequency_compensation: true
+  strict_video_prior: true
+
+  # Recurrent direct-rollout training. Explicit horizon probabilities supersede
+  # the legacy three-window curriculum fields below.
+  rollout_training_enable: false
+  rollout_training_start_step: -1
+  rollout_training_freq: 10
+  rollout_training_phase: 3
+  rollout_sampling_steps: 8
+  rollout_overlap_frames: 4
+  rollout_initial_context_frames: 1
+  rollout_training_frames: 40
+  rollout_num_windows: 3
+  rollout_horizon_probabilities: null
+  rollout_three_window_start_step: 50
+  rollout_three_window_probability: 0.25
+  rollout_generated_mix_ramp_steps: 100
+  rollout_generated_mix_min_prob: 0.0
+  rollout_generated_mix_max_prob: 0.25
+  rollout_boundary_temporal_weight: 2.0e-4
+  rollout_boundary_color_weight: 5.0e-5
+  rollout_trajectory_weight: 0.0
+  # Optional V10 adapter calibration: compare the state-conditioned denoising
+  # task with the exact same frozen no-state task and penalize regressions only.
+  rollout_state_regret_weight: 0.0
+  rollout_adapter_diffusion_weight: 1.0
+  rollout_sampled_preference_enable: false
+  rollout_sampled_preference_weight: 0.0
+  rollout_sampled_preference_freq: 2
+  rollout_sampled_preference_phase: 0
+  rollout_sampled_preference_frequency_compensation: true
+  rollout_sampled_preference_temperature: 0.25
+  rollout_sampled_preference_num_windows: 1
+  rollout_preference_context_init_probability: 0.0
+  rollout_preference_relative_floor: 1.0e-3
+  rollout_preference_absolute_floor: 1.0e-6
+  rollout_preference_confidence_temperature: 0.25
+  rollout_preference_identity_weight: 0.05
+  rollout_preference_regression_beta: 0.05
+  rollout_preference_noise_repeats: 1
+  rollout_preference_holdout_fraction: 0.2
+  rollout_preference_cache_mode: off
+  rollout_preference_cache_collection_only: false
+  rollout_preference_cache_dir: null
+  rollout_preference_cache_namespace: upcast-state
+  rollout_preference_source_id: unknown
+  # Keep collection stationary: cached utility labels are always measured from
+  # the immutable full-state V10.3 predecessor, never the policy being fitted.
+  rollout_preference_predecessor_branch_mode: full
+  rollout_preference_min_validation_correlation: 0.2
+  rollout_preference_state_weight: 0.25
+  rollout_preference_dino_weight: 0.30
+  rollout_preference_vjepa_temporal_weight: 0.35
+  rollout_preference_vjepa_spatial_weight: 0.15
+  rollout_preference_physical_weight: 0.20
+  strict_rollout_sampled_preference: true
+  rollout_horizon_power: 1.0
+  rollout_boundary_signal_threshold: 0.1
+  rollout_boundary_max_grad_ratio: 0.1
+  rollout_gradient_probe_scale: 65536.0
+  rollout_frequency_compensation: false
+  rollout_skip_alignment: true
+  rollout_adapter_only_gradients: false
+  strict_rollout_training: true
+
+  # Scheduled-sampling proxy for long rollouts. It performs a sparse second
+  # denoising pass with detached generated-like history and future-only loss.
+  generated_context_exposure_weight: 0.0
+  generated_context_exposure_start_step: -1
+  generated_context_exposure_freq: 20
+  generated_context_exposure_phase: 2
+  generated_context_frequency_compensation: true
+  generated_context_num_frames: 4
+  generated_context_blend: 0.5
+  generated_context_max_residual: 1.0
+  generated_context_min_signal: 0.1
+  generated_context_activation_checkpointing: true
+  generated_context_skip_alignment: true
+  generated_context_skip_base_diffusion: true
+  strict_generated_context_exposure: true

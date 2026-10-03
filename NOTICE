@@ -1,0 +1,11 @@
+UPCAST
+
+This release includes code derived from the following upstream projects:
+- GeometryForcing: Copyright 2025 Haoyu Wu, Apache License 2.0.
+- Research template: Copyright 2025 Kiwhan Song and Boyuan Chen, MIT.
+- VGGT: Copyright Meta Platforms, Inc. and affiliates, CC BY-NC 4.0
+  for the original source snapshot included here.
+- DROID-SLAM: Copyright 2021 Princeton Vision & Learning Lab, BSD 3-Clause.
+
+Upstream attribution is retained independently of the authorship of UPCAST.
+See LICENSE and THIRD_PARTY.md for source and license details.

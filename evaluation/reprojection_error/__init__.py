@@ -1,0 +1,167 @@
+import argparse
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), 'droid_slam'))
+from typing import List
+
+import cv2
+import numpy as np
+import torch
+from droid import Droid
+from tqdm import tqdm
+
+
+def image_stream(image_list, stride, calib=None):
+    """ image generator """
+    selected_indices = list(range(0, len(image_list), stride))
+    for t, source_index in enumerate(selected_indices):
+        imfile = image_list[source_index]
+        image = cv2.imread(imfile)
+        h0, w0, _ = image.shape
+        # If calib is None, set fx, fy to a reasonable value, cx, cy to half image size
+        if calib is None:
+            fx = fy = 0.9 * max(h0, w0)  # 0.9 * max dimension as a reasonable focal length
+            cx = w0 / 2.0
+            cy = h0 / 2.0
+        else:
+            calib_array = np.asarray(calib)
+            if calib_array.ndim == 2:
+                fx, fy, cx, cy = calib_array[source_index]
+            else:
+                fx, fy, cx, cy = calib_array
+        K = np.eye(3)
+        K[0,0] = fx
+        K[0,2] = cx
+        K[1,1] = fy
+        K[1,2] = cy
+        h1 = int(h0 * np.sqrt((512 * 512) / (h0 * w0)))
+        w1 = int(w0 * np.sqrt((512 * 512) / (h0 * w0)))
+        image = cv2.resize(image, (w1, h1))
+        image = image[:h1-h1%8, :w1-w1%8]
+        image = torch.as_tensor(image).permute(2, 0, 1)
+        intrinsics = torch.as_tensor([fx, fy, cx, cy])
+        intrinsics[0::2] *= (w1 / w0)
+        intrinsics[1::2] *= (h1 / h0)
+
+        yield t, image[None], intrinsics
+
+
+def save_reconstruction(droid, save_path):
+
+    if hasattr(droid, "video2"):
+        video = droid.video2
+    else:
+        video = droid.video
+
+    t = video.counter.value
+    save_data = {
+        "tstamps": video.tstamp[:t].cpu(),
+        "images": video.images[:t].cpu(),
+        "disps": video.disps_up[:t].cpu(),
+        "poses": video.poses[:t].cpu(),
+        "intrinsics": video.intrinsics[:t].cpu(),
+    }
+
+    torch.save(save_data, save_path)
+
+
+class ReprojectionErrorMetric():
+    """
+
+    return: Reprojection error
+
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        repo_dir = os.path.dirname(__file__)
+        default_weights = os.path.join(repo_dir, 'checkpoints', 'droid.pth')
+        fallback_weights = os.path.join(repo_dir, 'third_party', 'DROID-SLAM', 'droid.pth')
+        if os.path.isfile(default_weights):
+            weights_path = default_weights
+        elif os.path.isfile(fallback_weights):
+            weights_path = fallback_weights
+        else:
+            raise FileNotFoundError(
+                "Missing DROID-SLAM checkpoint 'droid.pth'. "
+                f"Expected one of: {default_weights}, {fallback_weights}. "
+                "Download it via 'cd evaluation/reprojection_error/third_party/DROID-SLAM && ./tools/download_model.sh' "
+                "then copy/symlink to evaluation/reprojection_error/checkpoints/droid.pth."
+            )
+
+        args = {
+            "t0": 0,
+            "stride": 1,
+            "weights": weights_path,
+            "buffer": 512,
+            "beta": 0.3,
+            "filter_thresh": 0.01,
+            "warmup": 8,
+            "keyframe_thresh": 4.0,
+            "frontend_thresh": 16.0,
+            "frontend_window": 25,
+            "frontend_radius": 2,
+            "frontend_nms": 1,
+            "backend_thresh": 22.0,
+            "backend_radius": 2,
+            "backend_nms": 3,
+            # need high resolution depths
+            "upsample": True,
+            "stereo": False,
+        }
+        args = argparse.Namespace(**args)
+
+        self._args = args
+        self.droid = None
+        if torch.multiprocessing.get_start_method(allow_none=True) is None:
+            torch.multiprocessing.set_start_method('spawn')
+
+    def compute_trajectory(
+        self,
+        rendered_images: List[str],
+        reconstruction_path: str = None,
+        calib=None,
+    ):
+        """Return DROID camera-to-world poses and valid graph errors.
+
+        ``calib`` accepts either one ``[fx, fy, cx, cy]`` vector or one vector
+        per input frame.  The public trajectory path is used by evaluations
+        with metric ground-truth poses; existing reprojection-only callers keep
+        using :meth:`compute_scores` unchanged.
+        """
+        if not rendered_images:
+            raise ValueError("rendered_images cannot be empty")
+        stream = image_stream(rendered_images, self._args.stride, calib)
+        try:
+            for t, image, intrinsics in tqdm(stream):
+                if t < self._args.t0:
+                    continue
+                if self.droid is None:
+                    self._args.image_size = [image.shape[2], image.shape[3]]
+                    self.droid = Droid(self._args)
+                self.droid.track(t, image, intrinsics=intrinsics)
+            if self.droid is None:
+                raise RuntimeError("DROID received no usable frames")
+            traj_est, valid_errors = self.droid.terminate(
+                image_stream(rendered_images, self._args.stride, calib)
+            )
+            if reconstruction_path is not None:
+                save_reconstruction(self.droid, reconstruction_path)
+            if torch.is_tensor(valid_errors):
+                valid_errors = valid_errors.detach().cpu().numpy()
+            return traj_est, np.asarray(valid_errors)
+        finally:
+            self.droid = None
+
+    def compute_scores(
+        self,
+        rendered_images: List[str],
+        reconstruction_path: str = None,
+        calib=None,
+    ) -> float:
+        _, valid_errors = self.compute_trajectory(
+            rendered_images,
+            reconstruction_path=reconstruction_path,
+            calib=calib,
+        )
+        return float(valid_errors.mean()) if len(valid_errors) > 0 else float('nan')

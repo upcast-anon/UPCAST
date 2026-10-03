@@ -1,0 +1,15 @@
+# Validation videos chosen from distinct visits using only source trajectories.
+# Ranking minimizes distance to the fixed RE10K 64-frame motion reference after
+# interpolating the official 10 Hz poses at the native 60 FPS RGB-D timestamps.
+42444946
+42898849
+42897541
+42897545
+42897561
+42897688
+42899461
+42897599
+42446038
+42445028
+42446163
+42446533

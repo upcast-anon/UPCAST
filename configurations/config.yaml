@@ -1,0 +1,19 @@
+# configuration parsing starts here
+defaults:
+  - _self_
+  - experiment: video_generation # experiment yaml file name in configurations/experiments folder [fixme]
+  - dataset: realestate10k
+  - algorithm: dfot_upcast
+  - optional dataset_experiment: ${dataset}_${experiment} # optional yaml file in configurations/dataset_experiment folder, overrides algorithm and experiment configurations that are dataset and experiment dependent
+  - cluster: null # optional, cluster yaml file name in configurations/cluster folder. Leave null for local compute
+  - optional recipe: null
+
+debug: false # global debug flag will be passed into configuration of experiment, dataset and algorithm
+
+wandb:
+  entity: null # Set your own entity for online logging or cloud checkpoints.
+  project: upcast
+  mode: offline
+
+resume: null # wandb run id to resume logging and loading checkpoint from
+load: null # wandb run id containing checkpoint or a path to a checkpoint file

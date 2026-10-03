@@ -1,0 +1,100 @@
+# @package _global_
+algorithm:
+  checkpoint:
+    strict: false
+    weights_source: raw
+    reset_training_state: true
+  alignment:
+    alignment_mode: unit_world_latent
+    unit_arch_version: 7
+    unit_inference_enable: true
+    unit_video_only_inference: true
+    unit_migrate_from_version: null
+    alignment_coeff: 0.0
+    unit_geometry_tokenizer_steps: 0
+    unit_bootstrap_steps: 0
+    unit_joint_ramp_steps: 0
+    unit_joint_alignment_coeff: 0.0
+    world_state_training_mode: adapter_only
+    world_state_runtime_scale: 1.0
+    world_state_lr: 1.0e-05
+    world_state_require_rollout_reads: false
+    alignment_context_length: 16
+    keyframe_stride: 1
+    latents_info:
+    - - 576
+      - 32
+      - 32
+    compute_generation_loss: false
+    video_prior_preservation_weight: 0.0
+    generated_context_exposure_weight: 0.0
+    rollout_training_enable: true
+    rollout_training_start_step: 0
+    rollout_training_freq: 1
+    rollout_training_phase: 0
+    rollout_sampling_steps: 8
+    rollout_overlap_frames: 4
+    rollout_initial_context_frames: 1
+    rollout_training_frames: 40
+    rollout_num_windows: 3
+    rollout_three_window_start_step: 50
+    rollout_three_window_probability: 0.25
+    rollout_generated_mix_ramp_steps: 100
+    rollout_generated_mix_max_prob: 0.25
+    rollout_boundary_temporal_weight: 0.0002
+    rollout_boundary_color_weight: 5.0e-05
+    rollout_boundary_signal_threshold: 0.1
+    rollout_boundary_max_grad_ratio: 0.1
+    rollout_frequency_compensation: false
+    rollout_skip_alignment: true
+    strict_rollout_training: true
+  backbone:
+    latent_return_mode: same_level_blocks
+    latent_return_stage: down
+    latent_return_level: 2
+    latent_return_blocks:
+    - -1
+    world_state:
+      enable: true
+      dim: 768
+      inject_level: 2
+      anchor_dim: 9
+      memory_grid_size: 4
+      max_state_tokens: 160
+      visibility_threshold: 0.35
+      visibility_temperature: 0.1
+  lr_scheduler:
+    num_warmup_steps: 10
+  lr_scheduler_frequency: 1
+  logging:
+    grad_norm_freq: 0
+    loss_freq: 5
+dataset:
+  subdataset_size: 10000
+  rollout_training_frames: 40
+experiment:
+  ema:
+    enable: false
+  training:
+    lr: 1.0e-05
+    max_epochs: 999
+    max_steps: 200
+    batch_size: 1
+    data:
+      num_workers: 0
+    optim:
+      accumulate_grad_batches: ${oc.env:ACCUM,2}
+      gradient_clip_val: 1.0
+    log_every_n_steps: 5
+    checkpointing:
+      every_n_train_steps: 50
+      every_n_epochs: null
+      save_top_k: 1
+      save_last: link
+  find_unused_parameters: false
+  validation:
+    limit_batch: 0.0
+    num_sanity_val_steps: 0
+wandb:
+  mode: offline
+load: checkpoints/upcast_unified.ckpt

@@ -1,0 +1,38 @@
+defaults:
+  - dfot_video_pose
+
+lr_scheduler_frequency: 1
+
+# Train representation-alignment baselines independently of UPCAST.
+# The default feature is the last block of U-ViT's third/down level, equivalent
+# to latent index 2 in the shared backbone implementation.
+backbone:
+  latent_return_mode: same_level_blocks
+  latent_return_stage: down
+  latent_return_level: 2
+  latent_return_blocks: [-1]
+  generative_unit:
+    enable: false
+  world_state:
+    enable: false
+
+representation_alignment:
+  method: repa
+  alignment_coeff: 0.5
+  student_channels: 576
+  projector_hidden_dim: 2048
+  teacher_dim: 768
+  teacher_input_size: 224
+  projector_checkpointing: true
+  projector_frame_chunk: 2
+  # Frozen teachers are in eval mode, so chunking is numerically equivalent and
+  # prevents their temporary activations from fragmenting a 40 GiB device.
+  dino_frame_chunk: 8
+  videomae_batch_chunk: 1
+  dino_model_name: dinov2_vitb14
+  dino_source_dir: ./metric_cache/torch/hub/facebookresearch_dinov2_main
+  dino_checkpoint: ./model_cache/dinov2/dinov2_vitb14_pretrain.pth
+  videorepa_source_file: ./references/VideoREPA/finetune/models/cogvideox_t2v_align/models/ssl/VideoMAEv2.py
+  videomae_checkpoint: ./model_cache/VideoMAEv2/vit_b_k710_dl_from_giant.pth
+  trd_margin: 0.1
+  trd_query_frame_chunk: 1

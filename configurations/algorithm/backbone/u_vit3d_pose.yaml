@@ -1,0 +1,60 @@
+name: u_vit3d_pose
+channels: [128, 256, 512, 1024]
+emb_channels: 1024
+patch_size: 2
+block_types: ["ResBlock", "ResBlock", "TransformerBlock", "TransformerBlock"]
+block_dropouts: [0.0, 0.0, 0.1, 0.1]
+num_updown_blocks: [3, 3, 3]
+num_mid_blocks: 16
+num_heads: 4
+pos_emb_type: rope
+use_checkpointing: [false, false, false, false]
+conditioning:
+  dim: null # this will be overwritten at dfot_video_3d.py
+external_cond_dropout: 0.1 # probability of dropping a camera pose of each video during training
+latent_return_mode: same_level_blocks # multi_scale | same_level_blocks
+latent_return_stage: up # down | up | mid
+latent_return_level: 2 # level 2 is 576x32x32 after RE10K overrides
+latent_return_blocks: [-2]
+generative_unit:
+  enable: false
+  physical_dim: 64
+  spatial_grid: 8
+  num_heads: 8
+  max_read_scale: 0.08
+  local_read_fraction: 0.5
+  local_read_radius: 1
+  pair_encoder_layers: 2
+  pair_gate_prior: 0.8
+  pair_update_scale: 0.25
+world_state:
+  enable: false
+  dim: 768
+  inject_level: 2
+  num_heads: 12
+  max_read_scale: 0.15
+  appearance_read_scale: 0.25
+  physical_update_rate: 0.5
+  appearance_update_rate: 0.1
+  logsnr_scale: 8.0
+  anchor_dim: 9
+  memory_grid_size: 4
+  max_state_tokens: 160
+  visibility_threshold: 0.35
+  visibility_temperature: 0.10
+  preference_gate_hidden_dim: 64
+  preference_policy_version: 3
+  preference_content_dim: 32
+  preference_max_correction: 0.5
+  # Runtime-only safeguard for recurrent Unit reads. It preserves each video
+  # token's norm and clips only updates that exceed a local spatiotemporal
+  # relation or residual-ratio budget; it adds no checkpoint parameters.
+  # Keep generic/legacy training bitwise additive unless an experiment opts in.
+  transport_mode: additive # additive | relation_trust
+  transport_max_residual_ratio: 0.006
+  transport_max_relation_drift: 0.0001
+  transport_min_scale: 0.0
+  transport_preserve_token_norm: true
+  # Deprecated checkpoint fields. Age is part of the content policy input.
+  physical_age_half_life: 8.0
+  appearance_age_half_life: 1.5

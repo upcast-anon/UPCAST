@@ -1,0 +1,20 @@
+defaults:
+  - base_video
+
+save_dir: ${oc.env:ARKITSCENES_PREPARED_ROOT,./data/arkitscenes-prepared}
+external_cond_dim: 16
+max_frames: 16
+frame_skip: 1
+context_length: 1
+resolution: 256
+# Keep normalization identical to the RE10K-trained backbone for zero-shot use.
+data_mean: [[[0.577]], [[0.517]], [[0.461]]]
+data_std: [[[0.249]], [[0.249]], [[0.268]]]
+filter_min_len: null
+num_eval_videos: 12
+maximize_training_data: false
+augmentation:
+  frame_skip_increase: 0
+  horizontal_flip_prob: 0.0
+  reverse_prob: 0.0
+  back_and_forth_prob: 0.0

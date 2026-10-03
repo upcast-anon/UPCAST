@@ -1,0 +1,167 @@
+# @package _global_
+algorithm:
+  checkpoint:
+    strict: false
+    weights_source: raw
+    reset_training_state: true
+  alignment:
+    alignment_mode: unit_world_latent
+    unit_arch_version: 7
+    alignment_context_length: 16
+    keyframe_stride: 1
+    latents_info:
+    - - 576
+      - 32
+      - 32
+    geometry_teacher: page4d
+    geometry_teacher_repo_id: zhouk777/PAGE4D
+    geometry_teacher_checkpoint: huggingface/zhouk777--PAGE4D/checkpoint_nomask.pt
+    geometry_representation: point_map
+    geometry_feature_info:
+    - 3
+    - 128
+    - 128
+    geometry_normalize: true
+    unit_dim: 768
+    unit_spatial_grid:
+    - 8
+    - 8
+    unit_anchor_grid:
+    - 16
+    - 16
+    unit_mformer_layers: 4
+    unit_fusion_layers: 4
+    unit_appearance_layers: 2
+    unit_appearance_fusion_layers: 2
+    unit_visual_decoder_layers: 8
+    unit_geometry_decoder_layers: 8
+    unit_num_heads: 12
+    unit_ffn_dim: 3072
+    unit_vq_dim: 64
+    unit_vq_stages: 2
+    unit_vq_codebook_size: 256
+    unit_commitment_beta: 0.25
+    unit_vq_ema_decay: 0.8
+    unit_vq_dead_code_threshold: 2
+    unit_vq_dead_code_restart_interval: 100
+    unit_geometry_feature_channels: 2048
+    unit_noise_signal_threshold: 0.01
+    unit_dino_model_name: dinov2_vits14
+    unit_video_tail_checkpoint: checkpoints/DFoT_16f_state_dict.ckpt
+    unit_tail_activation_checkpointing: true
+    unit_visual_loss_weight: 1.0
+    unit_geometry_loss_weight: 1.0
+    unit_tail_fm_loss_weight: 1.0
+    unit_rvq_loss_weight: 1.0
+    unit_code_assignment_loss_weight: 1.0
+    unit_soft_code_loss_weight: 0.5
+    unit_pre_vq_alignment_loss_weight: 0.5
+    unit_code_usage_loss_weight: 0.25
+    unit_student_spread_loss_weight: 0.25
+    unit_code_level_weights:
+    - 2.0
+    - 1.0
+    unit_physical_contrast_loss_weight: 0.1
+    unit_appearance_contrast_loss_weight: 0.1
+    unit_variance_loss_weight: 0.1
+    unit_shuffle_loss_weight: 0.5
+    unit_shuffle_margin: 0.05
+    unit_shuffle_loss_freq: 4
+    unit_shuffle_loss_phase: 2
+    unit_anchor_dropout: 0.25
+    unit_anchor_sample_dropout: 0.25
+    unit_q_only_loss_weight: 0.2
+    unit_q_only_loss_freq: 4
+    unit_q_only_loss_phase: 0
+    unit_contrastive_temperature: 0.1
+    unit_contrastive_memory_size: 256
+    unit_code_temperature: 0.1
+    unit_code_usage_temperature: 0.01
+    unit_joint_visual_loss_weight: 0.1
+    unit_joint_geometry_loss_weight: 0.1
+    unit_joint_tail_fm_loss_weight: 1.0
+    unit_joint_rvq_loss_weight: 0.1
+    unit_joint_code_assignment_loss_weight: 0.02
+    unit_joint_soft_code_loss_weight: 0.02
+    unit_joint_pre_vq_alignment_loss_weight: 0.02
+    unit_joint_physical_contrast_loss_weight: 0.02
+    unit_joint_appearance_contrast_loss_weight: 0.02
+    alignment_coeff: 0.05
+    unit_geometry_tokenizer_steps: 100
+    unit_bootstrap_steps: 500
+    unit_joint_ramp_steps: 40
+    unit_joint_alignment_coeff: 0.004
+    unit_freeze_after_bootstrap: true
+    unit_health_check_start: 150
+    unit_health_check_patience: 20
+    unit_health_min_perplexity: 1.5
+    unit_health_min_projected_std: 0.01
+    compute_generation_loss: true
+    generation_loss_freq: 10
+    generation_loss_phase: 0
+    generation_loss_frequency_compensation: true
+    strict_generation_protection: true
+    generation_dino_patch_loss_weight: 0.003
+    generation_vjepa_spatial_loss_weight: 0.003
+    generation_vjepa_temporal_loss_weight: 0.01
+    generation_vjepa_global_loss_weight: 0.001
+    generation_video_encoder_name: vjepa_vitl16
+    generation_video_num_frames: 16
+    generation_pixel_loss_weight: 0.0
+    diffusion_lr: 5.0e-07
+    unit_lr: 8.0e-05
+    video_prior_preservation_weight: 0.1
+    video_prior_checkpoint: checkpoints/DFoT_16f_state_dict.ckpt
+    video_prior_cpu_offload: true
+    video_prior_preservation_freq: 10
+    video_prior_preservation_phase: 1
+    video_prior_frequency_compensation: true
+    strict_video_prior: true
+    unit_migrate_from_version: null
+  backbone:
+    latent_return_mode: same_level_blocks
+    latent_return_stage: down
+    latent_return_level: 2
+    latent_return_blocks:
+    - -1
+    world_state:
+      # Save the dormant zero-output adapter in the current checkpoint schema.
+      # State-conditioned inference remains disabled during this stage.
+      enable: true
+  lr_scheduler:
+    num_warmup_steps: 60
+  lr_scheduler_frequency: 1
+  logging:
+    grad_norm_freq: 0
+    loss_freq: 10
+dataset:
+  subdataset_size: 10000
+experiment:
+  ema:
+    enable: true
+    decay: 0.99
+    validate_original_weights: true
+    cpu_offload: true
+  training:
+    lr: 5.0e-07
+    max_epochs: 999
+    max_steps: 1000
+    batch_size: 1
+    data:
+      num_workers: 0
+    optim:
+      accumulate_grad_batches: ${oc.env:ACCUM,10}
+      gradient_clip_val: 1.0
+    log_every_n_steps: 10
+    checkpointing:
+      every_n_train_steps: 250
+      every_n_epochs: null
+      save_top_k: -1
+      save_last: link
+  find_unused_parameters: true
+  validation:
+    limit_batch: 0.0
+    num_sanity_val_steps: 0
+wandb:
+  mode: offline
+load: checkpoints/DFoT_16f_state_dict.ckpt
